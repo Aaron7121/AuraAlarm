@@ -1,43 +1,61 @@
 name: Publicar versión
 
-# Sube una etiqueta "vX.Y.Z" (igual al versionName de app/build.gradle.kts) y este flujo
-# compila el APK y crea el release con el archivo listo para descargar.
+# Publica un release con el APK cada vez que llega a la rama principal un versionName nuevo
+# (app/build.gradle.kts). También se lanza a mano desde Actions o subiendo una etiqueta vX.Y.Z.
+# Si esa versión ya tiene release, no hace nada.
 on:
   push:
-    tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   release:
+    if: github.ref_type == 'tag' || github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Comprobar que la etiqueta coincide con la versión de la app
+      - name: Leer la versión
+        id: version
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          grep -q "versionName = \"$VERSION\"" app/build.gradle.kts \
-            || { echo "La etiqueta $GITHUB_REF_NAME no coincide con versionName en app/build.gradle.kts"; exit 1; }
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          TAG="v$VERSION"
+          if [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "$TAG" ]; then
+            echo "La etiqueta $GITHUB_REF_NAME no coincide con versionName ($VERSION)"; exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "La versión $VERSION ya está publicada; nada que hacer."
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-java@v4
+        if: steps.version.outputs.publish == 'true'
         with:
           distribution: temurin
           java-version: 17
 
       - uses: gradle/actions/setup-gradle@v4
+        if: steps.version.outputs.publish == 'true'
 
       - name: Tests y APK
+        if: steps.version.outputs.publish == 'true'
         run: ./gradlew testDebugUnitTest assembleRelease
 
       - name: Publicar release
-        env:
-          GH_TOKEN: ${{ github.token }}
+        if: steps.version.outputs.publish == 'true'
         run: |
-          APK="AuraAlarm-${GITHUB_REF_NAME#v}.apk"
+          APK="AuraAlarm-${{ steps.version.outputs.version }}.apk"
           cp app/build/outputs/apk/release/app-release.apk "$APK"
-          gh release create "$GITHUB_REF_NAME" "$APK" \
-            --title "AuraAlarm ${GITHUB_REF_NAME#v}" \
+          gh release create "${{ steps.version.outputs.tag }}" "$APK" \
+            --title "AuraAlarm ${{ steps.version.outputs.version }}" \
             --notes-file .github/RELEASE_NOTES.md \
-            --target "$GITHUB_SHA"
+            --target "$GITHUB_SHA" \
+            --latest

@@ -25,13 +25,7 @@ Cada push también genera un APK de prueba en **Actions → Compilar APK**, en e
 
 ### Publicar una versión nueva
 
-Sube `versionCode` y `versionName` en `app/build.gradle.kts`, actualiza `.github/RELEASE_NOTES.md` y crea la etiqueta correspondiente:
-
-```bash
-git tag v1.2.0 && git push origin v1.2.0
-```
-
-El flujo **Publicar versión** compila el APK y crea el release con el archivo adjunto.
+Sube `versionCode` y `versionName` en `app/build.gradle.kts` y actualiza `.github/RELEASE_NOTES.md`. Al llegar ese cambio a la rama principal, el flujo **Publicar versión** compila el APK y crea el release `vX.Y.Z` con el archivo adjunto. Si esa versión ya existe, no hace nada. También se puede lanzar a mano desde Actions.
 
 ### Opción B: Android Studio
 

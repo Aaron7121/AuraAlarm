@@ -14,13 +14,24 @@ No tiene botón de posponer ni de apagar. La única salida es levantarse y mover
 
 ## Instalar
 
-### Opción A: APK ya compilado (sin instalar nada en el PC)
+### Opción A: descargar el APK (recomendado)
 
-1. En GitHub, ve a **Actions → Compilar APK** y abre la ejecución más reciente.
-2. Descarga el artefacto **AuraAlarm-apk** (un .zip que contiene `app-debug.apk`).
-3. Pásalo al teléfono y ábrelo. Android pedirá permiso para "instalar apps desconocidas" desde el navegador o el gestor de archivos.
+1. Abre la página de **[Releases](../../releases/latest)** del repositorio desde el teléfono.
+2. En *Assets*, descarga **AuraAlarm-x.y.z.apk** y ábrelo. Android pedirá permiso para "instalar apps desconocidas".
 
-Todas las compilaciones usan la misma clave de firma (`app/debug.keystore`), así que las nuevas versiones se instalan encima de la anterior sin perder tus alarmas.
+Todas las versiones usan la misma clave de firma (`app/debug.keystore`), así que las nuevas se instalan encima de la anterior sin perder tus alarmas.
+
+Cada push también genera un APK de prueba en **Actions → Compilar APK**, en el artefacto *AuraAlarm-apk*.
+
+### Publicar una versión nueva
+
+Sube `versionCode` y `versionName` en `app/build.gradle.kts`, actualiza `.github/RELEASE_NOTES.md` y crea la etiqueta correspondiente:
+
+```bash
+git tag v1.2.0 && git push origin v1.2.0
+```
+
+El flujo **Publicar versión** compila el APK y crea el release con el archivo adjunto.
 
 ### Opción B: Android Studio
 

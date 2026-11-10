@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Esfera de reloj con una figura en sentadilla: alarma + movimiento. Lienzo 108dp, zona segura de 66dp. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Aro del reloj -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFB547"
+        android:strokeWidth="4"
+        android:pathData="M54,27 A27,27 0 1,1 53.99,27 Z" />
+    <!-- Campanas -->
+    <path
+        android:fillColor="#FFB547"
+        android:pathData="M30,32 L38,24 A6,6 0 0,0 30,32 Z M78,32 L70,24 A6,6 0 0,1 78,32 Z" />
+    <!-- Cabeza -->
+    <path
+        android:fillColor="#F4F6FA"
+        android:pathData="M54,38 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+    <!-- Cuerpo en sentadilla: torso, muslo y espinilla -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#F4F6FA"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M54,45 L49,58 L61,61 L59,73" />
+    <!-- Brazos al frente -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#F4F6FA"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:pathData="M53,49 L66,51" />
+</vector>

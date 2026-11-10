@@ -17,6 +17,9 @@ private fun <T> JSONArray.mapObjects(transform: (JSONObject) -> T): List<T> =
 private fun JSONObject.optNullableBoolean(key: String): Boolean? =
     if (has(key) && !isNull(key)) getBoolean(key) else null
 
+private fun JSONObject.optNullableString(key: String): String? =
+    if (has(key) && !isNull(key)) getString(key).takeIf { it.isNotEmpty() } else null
+
 private fun exerciseOf(name: String?): Exercise =
     Exercise.entries.firstOrNull { it.name == name } ?: Exercise.SQUATS
 
@@ -79,6 +82,8 @@ object AlarmStore {
                 put("exercise", a.exercise.name)
                 put("reps", a.reps)
                 put("label", a.label)
+                put("soundUri", a.soundUri ?: JSONObject.NULL)
+                put("soundName", a.soundName ?: JSONObject.NULL)
             })
         }
     }.toString()
@@ -94,6 +99,8 @@ object AlarmStore {
             exercise = exerciseOf(o.optString("exercise")),
             reps = o.optInt("reps", 15),
             label = o.optString("label", ""),
+            soundUri = o.optNullableString("soundUri"),
+            soundName = o.optNullableString("soundName"),
         )
     }
 }
@@ -119,6 +126,7 @@ object SessionStore {
                 reps = o.getInt("reps"),
                 startedAt = o.getLong("startedAt"),
                 isRecheck = o.optBoolean("isRecheck", false),
+                soundUri = o.optNullableString("soundUri"),
             )
         }.getOrNull().also { _session.value = it }
     }
@@ -132,6 +140,7 @@ object SessionStore {
             put("reps", s.reps)
             put("startedAt", s.startedAt)
             put("isRecheck", s.isRecheck)
+            put("soundUri", s.soundUri ?: JSONObject.NULL)
         }
         context.prefs(FILE).edit().putString(KEY, o.toString()).commit()
         _session.value = s
@@ -304,6 +313,14 @@ object SettingsStore {
 
     fun setAwakeCheckDelayMinutes(context: Context, minutes: Int) {
         context.prefs(FILE).edit().putInt("awake_check_delay", minutes).apply()
+    }
+
+    /** "Ding" en cada repetición completada. */
+    fun repSoundEnabled(context: Context): Boolean =
+        context.prefs(FILE).getBoolean("rep_sound", true)
+
+    fun setRepSoundEnabled(context: Context, enabled: Boolean) {
+        context.prefs(FILE).edit().putBoolean("rep_sound", enabled).apply()
     }
 
     /** Pasos manuales (p. ej. Autoinicio de Xiaomi) que Android no deja comprobar por código. */

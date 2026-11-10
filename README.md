@@ -5,6 +5,9 @@ No tiene botón de posponer ni de apagar. La única salida es levantarse y mover
 
 - **Detección de postura en el teléfono** con [Google ML Kit Pose Detection](https://developers.google.com/ml-kit/vision/pose-detection). Funciona sin internet y las imágenes no se guardan ni salen del teléfono. La librería ML Kit puede enviar a Google métricas de uso anónimas, nunca imágenes.
 - **Sin escape**: volumen al máximo forzado, botones de volumen y "atrás" bloqueados, y un vigilante que la vuelve a hacer sonar si el sistema mata la app. Si apagas el teléfono con la alarma sonando, vuelve a sonar al encenderlo (si han pasado menos de 3 h).
+- **El sonido que quieras**: cada alarma puede usar un tono del teléfono o una canción o archivo de audio tuyo, con botón "Escuchar". Si el archivo desaparece, suena el tono predeterminado; nunca se queda en silencio.
+- **Sonido en cada repetición**: un "ding" cada vez que cuenta una repetición y un acorde al completar el reto. Se puede desactivar en Ajustes.
+- **Aviso de orientación**: si el teléfono no está en horizontal (flexiones) o en vertical (sentadillas), aparece un aviso grande con un teléfono animado que gira hasta la posición correcta. Cuando ya te detecta, se reduce a un recordatorio pequeño.
 - **Chequeo anti-dormirse**: unos minutos después de apagarla aparece "¿Sigues despierto?". Si no lo tocas en 2 minutos, vuelve a sonar con un reto nuevo.
 - **Racha e historial**: despertares seguidos sin volver a dormirte, repeticiones totales y tiempo medio en apagarla.
 - **Guía de permisos para Xiaomi / Redmi / POCO** (Inicio automático, ventanas emergentes en segundo plano, batería sin restricciones).
@@ -47,7 +50,7 @@ Por línea de comandos, con el Android SDK instalado:
 | **Sentadillas** | Apoyado contra una pared o un mueble a unos 2 m, de lado o de frente. Tiene que verse el cuerpo entero, de los hombros a los pies. |
 | **Flexiones** | En el suelo, **en horizontal**, de lado respecto a ti y a 1–2 m. Tienen que verse hombro, codo, mano y cadera. |
 
-La pantalla del reto gira sola con el sensor aunque tengas el bloqueo de rotación, para saber dónde es "abajo".
+La pantalla del reto gira sola con el sensor aunque tengas el bloqueo de rotación, para saber dónde es "abajo". Si el teléfono no está en la orientación recomendada, la propia pantalla te lo indica con una animación.
 
 ## Cómo cuenta las repeticiones
 

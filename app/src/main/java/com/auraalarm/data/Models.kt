@@ -34,6 +34,10 @@ data class Alarm(
     val exercise: Exercise = Exercise.SQUATS,
     val reps: Int = Exercise.SQUATS.defaultReps,
     val label: String = "",
+    /** Sonido elegido (tono del sistema o archivo propio). null = alarma predeterminada del teléfono. */
+    val soundUri: String? = null,
+    /** Nombre legible del sonido, guardado al elegirlo para no tener que resolverlo cada vez. */
+    val soundName: String? = null,
 ) {
     val isRepeating: Boolean get() = days.isNotEmpty()
 
@@ -74,6 +78,7 @@ data class RingSession(
     val reps: Int,
     val startedAt: Long,
     val isRecheck: Boolean,
+    val soundUri: String? = null,
 )
 
 /** Un despertar completado. [awake] = null si el chequeo anti-dormirse está pendiente o desactivado. */

@@ -9,9 +9,7 @@ import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
-import android.media.RingtoneManager
 import android.media.ToneGenerator
-import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -73,7 +71,7 @@ class AlarmService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        if (!ringing) startRinging()
+        if (!ringing) startRinging(session)
         launchChallenge()
         return START_STICKY
     }
@@ -130,7 +128,7 @@ class AlarmService : Service() {
         }
     }
 
-    private fun startRinging() {
+    private fun startRinging(session: RingSession) {
         ringing = true
 
         val pm = getSystemService(PowerManager::class.java)
@@ -145,7 +143,7 @@ class AlarmService : Service() {
         }
         handler.post(volumeEnforcer)
 
-        startSound()
+        startSound(session.soundUri)
         startVibration()
 
         scope.launch {
@@ -156,46 +154,15 @@ class AlarmService : Service() {
         }
     }
 
-    private fun startSound() {
-        val attrs = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ALARM)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-        val candidates = listOfNotNull(
-            RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM),
-            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM),
-            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE),
-            RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
-        ).distinct()
-
-        for (uri in candidates) {
-            val mp = tryPlay(uri, attrs)
-            if (mp != null) {
-                player = mp
-                return
-            }
-        }
+    private fun startSound(chosen: String?) {
+        player = AlarmSound.playFirstAvailable(this, chosen, looping = true)?.first
+        if (player != null) return
         // Último recurso: un tono generado que no depende de ningún archivo.
         tone = runCatching {
             ToneGenerator(AudioManager.STREAM_ALARM, ToneGenerator.MAX_VOLUME).apply {
                 startTone(ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK)
             }
         }.getOrNull()
-    }
-
-    private fun tryPlay(uri: Uri, attrs: AudioAttributes): MediaPlayer? {
-        val mp = MediaPlayer()
-        return runCatching {
-            mp.setAudioAttributes(attrs)
-            mp.setDataSource(this, uri)
-            mp.isLooping = true
-            mp.prepare()
-            mp.start()
-            mp
-        }.getOrElse {
-            mp.release()
-            null
-        }
     }
 
     private fun startVibration() {

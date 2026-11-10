@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -222,7 +223,13 @@ private fun AlarmRow(alarm: Alarm, onClick: () -> Unit, onToggle: (Boolean) -> U
             Column(Modifier.weight(1f)) {
                 Text(alarm.timeText(), style = TimeStyle, color = MaterialTheme.colorScheme.onSurface.copy(alpha = dim))
                 Text(
-                    listOfNotNull(alarm.label.takeIf { it.isNotBlank() }, alarm.daysText()).joinToString(" · "),
+                    listOfNotNull(
+                        alarm.label.takeIf { it.isNotBlank() },
+                        alarm.daysText(),
+                        alarm.soundName?.let { "♪ $it" },
+                    ).joinToString(" · "),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = dim),
                 )
                 Text(

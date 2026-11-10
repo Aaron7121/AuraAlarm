@@ -33,6 +33,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 reps = alarm.reps,
                 startedAt = System.currentTimeMillis(),
                 isRecheck = false,
+                soundUri = alarm.soundUri,
             ),
         )
     }

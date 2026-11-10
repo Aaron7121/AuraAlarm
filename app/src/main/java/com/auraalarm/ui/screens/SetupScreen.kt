@@ -74,6 +74,7 @@ fun SetupScreen(onBack: () -> Unit) {
 
     var awakeCheck by remember { mutableStateOf(SettingsStore.awakeCheckEnabled(context)) }
     var awakeDelay by remember { mutableIntStateOf(SettingsStore.awakeCheckDelayMinutes(context)) }
+    var repSound by remember { mutableStateOf(SettingsStore.repSoundEnabled(context)) }
 
     Scaffold(
         topBar = {
@@ -123,6 +124,26 @@ fun SetupScreen(onBack: () -> Unit) {
                                 }
                             }
                         }
+                    }
+                }
+            }
+
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh)) {
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Sonido en cada repetición", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "Un \"ding\" al contar cada repetición y un acorde al completar el reto.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Switch(checked = repSound, onCheckedChange = {
+                            repSound = it
+                            SettingsStore.setRepSoundEnabled(context, it)
+                        })
                     }
                 }
             }

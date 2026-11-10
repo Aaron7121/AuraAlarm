@@ -65,7 +65,8 @@ object AwakeCheck {
         AwakeCheckStore.clear(context)
         HistoryStore.setAwake(context, state.entryId, false)
 
-        val exercise = AlarmStore.get(context, state.alarmId)?.exercise ?: Exercise.RANDOM
+        val alarm = AlarmStore.get(context, state.alarmId)
+        val exercise = alarm?.exercise ?: Exercise.RANDOM
         RingController.startRinging(
             context,
             RingSession(
@@ -75,6 +76,7 @@ object AwakeCheck {
                 reps = state.reps,
                 startedAt = System.currentTimeMillis(),
                 isRecheck = true,
+                soundUri = alarm?.soundUri,
             ),
         )
     }

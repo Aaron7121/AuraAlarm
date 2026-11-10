@@ -1,6 +1,23 @@
 package com.auraalarm.ui.screens
 
 import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.media.AudioManager
+import android.media.MediaPlayer
+import android.media.RingtoneManager
+import android.net.Uri
+import android.provider.Settings
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.core.content.IntentCompat
+import androidx.core.net.toUri
+import com.auraalarm.alarm.AlarmSound
+import com.auraalarm.ui.theme.Amber
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -73,6 +90,8 @@ fun EditAlarmScreen(alarmId: Int, onDone: () -> Unit) {
     var exercise by rememberSaveable { mutableStateOf(original.exercise) }
     var reps by rememberSaveable { mutableFloatStateOf(original.reps.toFloat()) }
     var label by rememberSaveable { mutableStateOf(original.label) }
+    var soundUri by rememberSaveable { mutableStateOf(original.soundUri) }
+    var soundName by rememberSaveable { mutableStateOf(original.soundName) }
     var confirmDelete by remember { mutableStateOf(false) }
 
     fun current() = original.copy(
@@ -82,6 +101,8 @@ fun EditAlarmScreen(alarmId: Int, onDone: () -> Unit) {
         exercise = exercise,
         reps = reps.roundToInt(),
         label = label.trim(),
+        soundUri = soundUri,
+        soundName = soundName,
         enabled = true,
     )
 
@@ -171,6 +192,17 @@ fun EditAlarmScreen(alarmId: Int, onDone: () -> Unit) {
                 )
             }
 
+            Section("Sonido") {
+                SoundPicker(
+                    soundUri = soundUri,
+                    soundName = soundName,
+                    onChange = { uri, name ->
+                        soundUri = uri
+                        soundName = name
+                    },
+                )
+            }
+
             Section("Nombre (opcional)") {
                 OutlinedTextField(
                     value = label,
@@ -229,5 +261,105 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(top = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(title, style = MaterialTheme.typography.titleMedium)
         content()
+    }
+}
+
+/**
+ * Elegir el sonido de la alarma: un tono del teléfono (selector del sistema, incluye los tonos
+ * de alarma que ya tengas) o cualquier canción/archivo de audio. "Silencio" no se ofrece.
+ */
+@Composable
+private fun SoundPicker(soundUri: String?, soundName: String?, onChange: (String?, String?) -> Unit) {
+    val context = LocalContext.current
+    var preview by remember { mutableStateOf<MediaPlayer?>(null) }
+    fun stopPreview() {
+        preview?.let { runCatching { it.stop() }; it.release() }
+        preview = null
+    }
+    DisposableEffect(Unit) { onDispose { stopPreview() } }
+    LaunchedEffect(soundUri) { stopPreview() }
+
+    val ringtonePicker = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
+        val uri = result.data?.let { IntentCompat.getParcelableExtra(it, RingtoneManager.EXTRA_RINGTONE_PICKED_URI, Uri::class.java) }
+        if (uri == null || AlarmSound.isSystemDefault(uri)) {
+            onChange(null, null)
+        } else {
+            onChange(uri.toString(), AlarmSound.ringtoneTitle(context, uri) ?: "Tono del teléfono")
+        }
+    }
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        // Permiso permanente: la alarma tiene que poder leer el archivo dentro de días o semanas.
+        runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        onChange(uri.toString(), AlarmSound.fileName(context, uri) ?: "Archivo de audio")
+    }
+
+    fun openRingtonePicker() {
+        val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER)
+            .putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
+            .putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Sonido de la alarma")
+            .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_DEFAULT, true)
+            .putExtra(RingtoneManager.EXTRA_RINGTONE_SHOW_SILENT, false)
+            .putExtra(RingtoneManager.EXTRA_RINGTONE_DEFAULT_URI, Settings.System.DEFAULT_ALARM_ALERT_URI)
+            .putExtra(RingtoneManager.EXTRA_RINGTONE_EXISTING_URI, soundUri?.toUri() ?: Settings.System.DEFAULT_ALARM_ALERT_URI)
+        runCatching { ringtonePicker.launch(intent) }.onFailure {
+            Toast.makeText(context, "Este teléfono no tiene selector de tonos; elige un archivo", Toast.LENGTH_SHORT).show()
+            filePicker.launch(arrayOf("audio/*"))
+        }
+    }
+
+    fun togglePreview() {
+        if (preview != null) {
+            stopPreview()
+            return
+        }
+        val am = context.getSystemService(AudioManager::class.java)
+        if (am.getStreamVolume(AudioManager.STREAM_ALARM) == 0) {
+            Toast.makeText(context, "El volumen de alarma está a 0. Cuando suene de verdad se pondrá al máximo.", Toast.LENGTH_LONG).show()
+        }
+        val played = AlarmSound.playFirstAvailable(context, soundUri, looping = false)
+        if (played == null) {
+            Toast.makeText(context, "No se pudo reproducir ningún sonido", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val (player, usedChosen) = played
+        if (soundUri != null && !usedChosen) {
+            Toast.makeText(context, "No se puede reproducir ese sonido; sonaría el predeterminado. Elige otro.", Toast.LENGTH_LONG).show()
+        }
+        player.setOnCompletionListener { if (preview === it) stopPreview() }
+        preview = player
+    }
+
+    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)) {
+        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Notifications, contentDescription = null, tint = Amber)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    soundName ?: "Alarma del teléfono",
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    when {
+                        soundUri == null -> "Predeterminado"
+                        AlarmSound.isSystemTone(soundUri) -> "Tono del teléfono"
+                        else -> "Archivo propio"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            TextButton(onClick = ::togglePreview) { Text(if (preview != null) "Parar" else "Escuchar") }
+        }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(onClick = ::openRingtonePicker, modifier = Modifier.weight(1f)) { Text("Tonos del teléfono") }
+        OutlinedButton(onClick = { filePicker.launch(arrayOf("audio/*")) }, modifier = Modifier.weight(1f)) { Text("Canción o archivo") }
+    }
+    if (soundUri != null) {
+        TextButton(onClick = { onChange(null, null) }) { Text("Usar el sonido predeterminado") }
     }
 }
